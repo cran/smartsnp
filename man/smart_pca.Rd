@@ -59,12 +59,9 @@ No effect on computation, if no ancient samples present.}
 \value{
 Returns a list containing the following elements:
 \itemize{
-  \item {\code{pca.snp_loadings}} {Dataframe of principal coefficients of SNPs. One set of coefficients per PCA axis computed.}\cr
-  \item {\code{pca.eigenvalues}} {Dataframe of eigenvalues, variance and cumulative variance explained. One eigenvalue per PCA axis computed.}\cr
-  \item {\code{pca_sample_coordinates}} {Dataframe showing PCA sample summary.
-  Column \emph{Group} assigns samples to groups.
-  Column \emph{Class} specifies if samples "Removed" from PCA or "Projected" onto PCA space.
-  Sequence of additional columns shows principal components (coordinates) of samples in PCA space (1 column per PCA computed named PC1, PC2, ...).}
+  \item \code{pca.snp_loadings}: Dataframe of principal coefficients of SNPs. One set of coefficients per PCA axis computed.
+  \item \code{pca.eigenvalues}: Dataframe of eigenvalues, variance and cumulative variance explained. One eigenvalue per PCA axis computed.
+  \item \code{pca_sample_coordinates}: Dataframe showing PCA sample summary. Column \emph{Group} assigns samples to groups. Column \emph{Class} specifies if samples were "Removed" from PCA or "Projected" onto PCA space. Additional columns show principal components (coordinates) of samples in PCA space (1 column per PCA computed, named PC1, PC2, ...).
 }
 }
 \description{
@@ -109,8 +106,8 @@ my_groups <- c(rep("A", 50), rep("B", 50)); cols = c("red", "blue")
 #run PCA with truncated SVD (PCA 1 x PCA 2)
 pcaR1 <- smart_pca(snp_data = pathToGenoFile, sample_group = my_groups)
 pcaR1$pca.eigenvalues # extract eigenvalues
-pcaR1$pca.snp_loadings # extract principal coefficients (SNP loadings)
-pcaR1$pca.sample_coordinates # extract principal components (sample position in PCA space)
+head(pcaR1$pca.snp_loadings) # extract principal coefficients (SNP loadings)
+head(pcaR1$pca.sample_coordinates) # extract principal components (sample position in PCA space)
 #plot PCA
 plot(pcaR1$pca.sample_coordinates[,c("PC1","PC2")], cex = 2,
      pch = 19, col = cols[as.factor(my_groups)], main = "genotype smartpca")
@@ -123,8 +120,8 @@ my_ancient <- c(1:10, 51:60)
 #run PCA with truncated SVD (PCA 1 x PCA 2)
 pcaR2 <- smart_pca(snp_data = pathToGenoFile, sample_group = my_groups, sample_project = my_ancient)
 pcaR2$pca.eigenvalues # extract eigenvalues
-pcaR2$pca.snp_loadings # extract principal coefficients (SNP loading)
-pcaR2$pca.sample_coordinates # extract principal components (sample position in PCA space)
+head(pcaR2$pca.snp_loadings) # extract principal coefficients (SNP loading)
+head(pcaR2$pca.sample_coordinates) # extract principal components (sample position in PCA space)
 #assign samples to groups (A, ancient, B) and colors
 my_groups[my_ancient] <- "ancient"; cols = c("red", "black", "blue")
 #plot PCA

@@ -57,7 +57,8 @@
 #' @param missing_value Number \code{9} or string \code{NA} indicating missing value.
 #' Default \code{missing_value = 9} as in \code{EIGENSTRAT}.
 #' If no missing values present, no effect on computation.
-#' @param missing_impute String handling missing values. Default \code{missing_impute = "mean"} replaces missing values of each SNP by mean of non-missing values across samples.
+#' @param missing_impute String handling missing values.
+#' Default \code{missing_impute = "mean"} replaces missing values of each SNP by mean of non-missing values across samples.
 #' \code{missing_impute = "remove"} removes SNPs with at least one missing value.
 #' If no missing values present, no effect on computation.
 #' @param scaling String. Default \code{scaling = "drift"} scales SNPs to control for expected allele frequency dispersion caused by genetic drift (SMARTPCA). \code{scaling = "center"} for \code{centering} (covariance-based PCA). \code{scaling = "sd"} for \code{centered} SNPs divided by standard deviation (correlation-based PCA).
@@ -89,23 +90,19 @@
 #' Default \code{"median"}. See details.
 #' @param samplesize_bias Logical.
 #' \code{samplesize_bias = TRUE} for dispersion weighted by number of samples per group.
-#' Default \code{pairwise = FALSE} for no weighting.
+#' Default \code{samplesize_bias = FALSE} for no weighting.
 #' See details.
 #'
 #' @return Returns a list containing the following elements:
 #' \itemize{
-#' \item{permdisp.samples}{Dataframe showing sample summary.
-#' Column \emph{Group} assigns samples to tested groups.
-#' Column \emph{Class} specifies if samples were used in, or removed from, testing (PERMDISP).
-#' Column \emph{Sample_dispersion} shows dispersion of individual samples relative to spatial \code{"median"} or \code{"centroid"}.}
-#' \item{permdisp.bias}{String indicating if PERMDISP dispersions corrected for number of samples per group.}
-#' \item{permdisp.group_location}{Dataframe showing coordinates of spatial \code{"median"} or \code{"centroid"} per group.}
-#' \item{permdisp.global_test}{List showing table with degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic and \emph{p} value.}
-#' \item{permdisp.pairwise_test}{List showing table with \emph{F} statistic, \emph{p} value and corrected \emph{p} value per pair of groups.
-#' Obtained only if \code{pairwise = TRUE}.}
-#' \item{permdisp.pairwise_correction}{String indicating type of correction for multiple testing.}
-#' \item{permdisp.permutation_number}{Number of permutations applied to obtain the distribution of \emph{F} statistic.}
-#' \item{permdisp.permutation_seed}{Number fixing random generator of permutations for reproducibility of results.}
+#'   \item \code{permdisp.samples}: Dataframe showing sample summary. Column \emph{Group} assigns samples to tested groups. Column \emph{Class} specifies if samples were used in, or removed from, testing (PERMDISP). Column \emph{Sample_dispersion} shows dispersion of individual samples relative to the spatial \code{"median"} or \code{"centroid"}.
+#'   \item \code{permdisp.bias}: String indicating if PERMDISP dispersions were corrected for the number of samples per group.
+#'   \item \code{permdisp.group_location}: Dataframe showing coordinates of spatial \code{"median"} or \code{"centroid"} per group.
+#'   \item \code{permdisp.global_test}: List showing table with degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic, and \emph{p} value.
+#'   \item \code{permdisp.pairwise_test}: List showing table with \emph{F} statistic, \emph{p} value, and corrected \emph{p} value per pair of groups. Obtained only if \code{pairwise = TRUE}.
+#'   \item \code{permdisp.pairwise_correction}: String indicating type of correction for multiple testing.
+#'   \item \code{permdisp.permutation_number}: Number of permutations applied to obtain the distribution of the \emph{F} statistic.
+#'   \item \code{permdisp.permutation_seed}: Number fixing the random generator of permutations for reproducibility of results.
 #' }
 #'
 #' @examples
@@ -146,7 +143,7 @@
 #' Patterson, N., A. L. Price and D. Reich (2006) Population structure and eigenanalysis. PLoS Genetics, 2, e190.\cr
 #' Warton, D. I., S. T. Wright and Y. Wang (2012) Distance-based multivariate analyses confound location and dispersion effects. Methods in Ecology and Evolution, 3, 89-101.
 #'
-#' @seealso \code{\link[vegan]{adonis}} (package \bold{vegan}),
+#' @seealso \code{\link[vegan]{adonis2}} (package \bold{vegan}),
 #' \code{\link[Rfast]{Dist}} (package \bold{Rfast}),
 #' \code{\link[data.table]{fread}} (package \bold{data.table}),
 #' \code{\link[vegan]{vegdist}} (package \bold{vegan}),
@@ -159,7 +156,7 @@
 utils::globalVariables(c("i"))
 smart_permdisp <- function(snp_data, packed_data = FALSE,
                            sample_group, sample_remove = FALSE, snp_remove = FALSE,
-                           missing_value = 9, missing_impute = "remove",
+                           missing_value = 9, missing_impute = "mean",
                            scaling = "drift",
                            sample_distance = "euclidean", program_distance = "Rfast",
                            target_space = "multidimensional", pc_axes = 2,
@@ -274,7 +271,11 @@ smart_permdisp <- function(snp_data, packed_data = FALSE,
       missing_value <- NA # reset missing value
     }
   } else { # generic input type (columns = samples, rows = SNPs)
-    snp_dat <- data.table::fread(file = snp_data, header = FALSE)
+    con <- file(snp_data,"r"); first_line <- readLines(con,n=1); close(con) # Read first line
+    plink_traw_format_flag <- FALSE
+    if (substr(first_line, 1, 8) == "CHR\tSNP\t") plink_traw_format_flag <- TRUE # Check for PLINK "traw" header line
+    snp_dat <- data.table::fread(file = snp_data, header = plink_traw_format_flag)
+    if (plink_traw_format_flag) snp_dat[, c("CHR","SNP", "(C)M", "POS", "COUNTED", "ALT"):=NULL] # If PLINK "traw" format, then remove non-genotype columns
     snpN.full <- nrow(snp_dat) # number of SNP
     message(paste("Imported", snpN.full, "SNP by", sampN.full, "sample genotype matrix"))
     message(paste0("Time elapsed: ", get.time(startT)))

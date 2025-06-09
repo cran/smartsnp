@@ -68,15 +68,12 @@ Default \code{1}.}
 \value{
 Returns a list containing the following elements:
 \itemize{
-  \item{permanova.samples}{Dataframe showing sample summary.
-  Column \emph{Group} assigns samples to tested groups.
-  Column \emph{Class} specifies if samples were used in, or removed from, testing.}
-  \item{permanova.global_test}{List showing table with degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic, variance explained (\emph{R2}) and \emph{p} value.}
-  \item{permanova.pairwise_test}{List showing table \emph{F} statistic, variance explained (\emph{R2}), \emph{p} value and corrected \emph{p} value per pair of groups.
-  Obtained only if \code{pairwise = TRUE}.}
-  \item{permanova.pairwise_correction}{String indicating type of correction for multiple testing.}
-  \item{permanova.permutation_number}{Number of permutations applied to obtain the distribution of \emph{p value}.}
-  \item{permanova.permutation_seed}{Number fixing random generator of permutations for reproducibility of results.}
+  \item \code{permanova.samples}: Dataframe showing sample summary. Column \emph{Group} assigns samples to tested groups. Column \emph{Class} specifies if samples were used in, or removed from, testing.
+  \item \code{permanova.global_test}: List showing table with degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic, variance explained (\emph{R2}) and \emph{p} value.
+  \item \code{permanova.pairwise_test}: List showing table with \emph{F} statistic, variance explained (\emph{R2}), \emph{p} value and corrected \emph{p} value per pair of groups. Obtained only if \code{pairwise = TRUE}.
+  \item \code{permanova.pairwise_correction}: String indicating type of correction for multiple testing.
+  \item \code{permanova.permutation_number}: Number of permutations applied to obtain the distribution of the \emph{p} value.
+  \item \code{permanova.permutation_seed}: Number fixing the random generator of permutations for reproducibility of results.
 }
 }
 \description{
@@ -93,7 +90,7 @@ Original acronym \code{NPMANOVA} (Non-Parametric MANOVA) replaced with PERMANOVA
 Univariate ANOVA captures differences in mean and variance referred to as location and dispersion in PERMANOVA's multivariate context (Anderson & Walsh 2013, Warton, Wright and Wang 2012).
 To attribute group differences to location (position of sample groups) and/or dispersion (spread of sample groups), PERMANOVA must be combined with PERMDISP as implemented through \code{smart_permdisp}.\cr
 
-Function \code{smart_permanova} uses \code{\link[vegan]{adonis}} to fit formula \code{snp_eucli ~ sample_group}, where \code{snp_eucli} is the sample-by-sample triangular matrix in Principal Coordinate Analysis (Gower 1966) space.
+Function \code{smart_permanova} uses \code{\link[vegan]{adonis2}} to fit formula \code{snp_eucli ~ sample_group}, where \code{snp_eucli} is the sample-by-sample triangular matrix in Principal Coordinate Analysis (Gower 1966) space.
 Current version restricted to one-way designs (one categorical predictor) though PERMANOVA can handle >1 crossed and/or nested factors (Anderson 2001) and continuous predictors (McArdle & Anderson 2001).
 If >2 sample groups tested, \code{pairwise = TRUE} allows pairwise testing and correction for multiple testing by \code{holm (Holm)} [default], \code{hochberg (Hochberg)}, \code{hommel (Hommel)}, \code{bonferroni (Bonferroni)}, \code{BY (Benjamini-Yekuieli)}, \code{BH (Benjamini-Hochberg)} or \code{fdr (False Discovery Rate)}.\cr
 
@@ -135,10 +132,13 @@ permanovaR$permanova.global_test
 pcaR1 <- smart_pca(snp_data = pathToGenoFile, sample_group = my_groups)
 #compute Euclidean inter-sample distances in PCA space (triangular matrix)
 snp_eucli <- vegan::vegdist(pcaR1$pca.sample_coordinates[,c("PC1","PC2")], method = "euclidean")
-#run PERMANOVA
-permanova <- vegan::adonis(formula = snp_eucli ~ my_groups, permutations = 9999)
-#extract meanSqs (groups versus residuals)
-meanSqs <- as.matrix(t(permanova$aov.tab$MeanSqs[1:2]))
+# Prepare grouping variable for PERMANOVA
+group_df <- data.frame(group = my_groups)
+# Run PERMANOVA
+permanova <- vegan::adonis2(formula = snp_eucli ~ group, data = group_df,
+                           permutations = 9999, by = "terms")
+#calculate meanSqs (groups versus residuals)
+meanSqs <- as.matrix(t(with(permanova, SumOfSqs/Df)[1:2]))
 colnames(meanSqs) <- c("Groups", "Residuals")
 #two horizontal plots
 oldpar <- par(mfrow = c(2,1), oma = c(0,5,0.1,0.1), lwd = 2)
@@ -165,7 +165,7 @@ Patterson, N., A. L. Price and D. Reich (2006) Population structure and eigenana
 Warton, D. I., S. T. Wright and Y. Wang (2012) Distance-based multivariate analyses confound location and dispersion effects. Methods in Ecology and Evolution, 3, 89-101.
 }
 \seealso{
-\code{\link[vegan]{adonis}} (package \bold{vegan}),
+\code{\link[vegan]{adonis2}} (package \bold{vegan}),
 \code{\link[Rfast]{Dist}} (package \bold{Rfast}),
 \code{\link[data.table]{fread}} (package \bold{data.table}),
 \code{\link[vegan]{vegdist}} (package \bold{vegan}),

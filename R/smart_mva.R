@@ -40,7 +40,7 @@
 #' If >22 chromosomes are provided and the internal parameter \code{numchrom} is not set to the target number chromosomes of interest, SMARTPCA automatically subsets chromosomes 1 to 22.
 #' In contrast, \code{smart_mva} accepts any number of autosomes with or without the sex chromosomes from an \code{EIGENSTRAT} file.\cr
 #'
-#' @param snp_data snp_data}{File name read from working directory.
+#' @param snp_data File name read from working directory.
 #' SNP = rows, samples = columns without row names or column headings.
 #' SNP values must be count data (no decimals allowed).
 #' File extension detected automatically whether text or \code{EIGENSTRAT}.
@@ -109,26 +109,19 @@
 #'
 #' @return Returns a list containing the following elements:
 #' \itemize{
-#' \item{pca.snp_loadings}{Dataframe of principal coefficients of SNPs.
-#' One set of coefficients per PCA axis computed.}
-#' \item{pca.eigenvalues}{Dataframe of eigenvalues, variance and cumulative variance explained.
-#' One eigenvalue per PCA axis computed.}
-#' \item{pca_sample_coordinates}{Dataframe showing PCA sample summary. Column \emph{Group} assigns samples to groups. Column \emph{Class} specifies if samples "Removed" from PCA or "Projected" onto PCA space.
-#' Sequence of additional columns shows principal components (coordinates) of samples in PCA space (1 column per PCA computed named PC1, PC2, ...).}
-#' \item{test_samples}{Dataframe showing test sample summary.
-#' Column \emph{Group} assigns samples to tested groups.
-#' Column \emph{Class} specifies if samples were used in, or removed from, testing (PERMANOVA and/or PERMDISP).
-#' Column \emph{Sample_dispersion} shows dispersion of individual samples relative to spatial \code{"median"} or \code{"centroid"} used in PERMDISP.}
-#' \item{permanova.global_test}{List showing PERMANOVA table with degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic, variance explained (\emph{R2}) and \emph{p} value.}
-#' \item{permanova.pairwise_test}{List showing PERMANOVA table with \emph{F} statistic, variance explained (\emph{R2}), \emph{p} value and corrected \emph{p} value per pair of groups.}
-#' \item{permdisp.global_test}{List showing PERMDISP table with degrees of freedoms, sum of squares, mean sum of squares, \emph{F} statistic and \emph{p} value.}
-#' \item{permdisp.pairwise_test}{List showing PERMDISP table with \emph{F} statistic, \emph{p} value and corrected \emph{p} value per pair of groups.
-#' Obtained only if \code{pairwise = TRUE}.}
-#' \item{permdisp.bias}{String indicating if PERMDISP dispersion corrected for number of samples per group.}
-#' \item{permdisp.group_location}{Dataframe showing coordinates of spatial \code{"median"} or \code{"centroid"} per group in PERMDISP.}
-#' \item{test.pairwise_correction}{String indicating type of correction for multiple testing in PERMANOVA and/or PERMDISP.}
-#' \item{test.permutation_number}{Number of permutations applied to obtain the distribution of \emph{F} statistic of PERMANOVA and/or PERMDISP.}
-#' \item{test.permutation_seed}{Number fixing random generator of permutations of PERMANOVA and/or PERMDISP for reproducibility of results.}
+#'   \item \code{pca.snp_loadings}: Dataframe of principal coefficients of SNPs. One set of coefficients per PCA axis computed.
+#'   \item \code{pca.eigenvalues}: Dataframe of eigenvalues, variance and cumulative variance explained. One eigenvalue per PCA axis computed.
+#'   \item \code{pca_sample_coordinates}: Dataframe showing PCA sample summary. Column \emph{Group} assigns samples to groups. Column \emph{Class} specifies if samples were "Removed" from PCA or "Projected" onto PCA space. Additional columns show principal components (coordinates) of samples in PCA space (e.g., PC1, PC2, ...).
+#'   \item \code{test_samples}: Dataframe showing test sample summary. Column \emph{Group} assigns samples to tested groups. Column \emph{Class} specifies if samples were used in or removed from testing (PERMANOVA and/or PERMDISP). Column \code{Sample_dispersion} shows sample dispersion relative to spatial \code{"median"} or \code{"centroid"} used in PERMDISP.
+#'   \item \code{permanova.global_test}: List with PERMANOVA results including degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic, variance explained (\emph{R2}), and \emph{p}-value.
+#'   \item \code{permanova.pairwise_test}: List with PERMANOVA results including \emph{F} statistic, variance explained (\emph{R2}), \emph{p}-value and corrected \emph{p}-value per group pair.
+#'   \item \code{permdisp.global_test}: List with PERMDISP results including degrees of freedom, sum of squares, mean sum of squares, \emph{F} statistic, and \emph{p}-value.
+#'   \item \code{permdisp.pairwise_test}: List with PERMDISP results including \emph{F} statistic, \emph{p}-value, and corrected \emph{p}-value per group pair. Only returned if \code{pairwise = TRUE}.
+#'   \item \code{permdisp.bias}: Character string indicating whether PERMDISP dispersion was corrected for unequal group sizes.
+#'   \item \code{permdisp.group_location}: Dataframe showing coordinates of group \code{"medians"} or \code{"centroids"} in PERMDISP.
+#'   \item \code{test.pairwise_correction}: Character string describing the multiple testing correction used in PERMANOVA and/or PERMDISP.
+#'   \item \code{test.permutation_number}: Number of permutations used to calculate \emph{F}-statistics.
+#'   \item \code{test.permutation_seed}: Seed used for reproducible permutation results in PERMANOVA and/or PERMDISP.
 #' }
 #'
 #' @examples
@@ -141,8 +134,8 @@
 #' # Run PCA, PERMANOVA and PERMDISP
 #' mvaR <- smart_mva(snp_data = pathToGenoFile, sample_group = my_groups)
 #' mvaR$pca$pca.eigenvalues # extract PCA eigenvalues
-#' mvaR$pca$pca.snp_loadings # extract principal coefficients (SNP loadings)
-#' mvaR$pca$pca.sample_coordinates # extract PCA principal components (sample position in PCA space)
+#' head(mvaR$pca$pca.snp_loadings) # extract principal coefficients (SNP loadings)
+#' head(mvaR$pca$pca.sample_coordinates) # extract PCA PCs (sample position in PCA space)
 #'
 #' # plot PCA
 #' plot(mvaR$pca$pca.sample_coordinates[,c("PC1","PC2")], cex = 2,
@@ -172,7 +165,7 @@ utils::globalVariables(c("proj_i", "S", "i")) # assign non-binding global variab
 smart_mva <- function(snp_data, packed_data = FALSE, sample_group,
                       sample_remove = FALSE, snp_remove = FALSE,
                       pca = TRUE, permanova = TRUE, permdisp = TRUE,
-                      missing_value = 9, missing_impute = "remove",
+                      missing_value = 9, missing_impute = "mean",
                       scaling = "drift",
                       program_svd = "RSpectra",
                       sample_project = FALSE, pc_project = c(1:2), # specific to smart_pca
@@ -310,7 +303,11 @@ smart_mva <- function(snp_data, packed_data = FALSE, sample_group,
       missing_value <- NA # reset missing value
     }
   } else { # generic input type (columns = samples, rows = SNPs)
-    snp_dat <- data.table::fread(file = snp_data, header = FALSE)
+    con <- file(snp_data,"r"); first_line <- readLines(con,n=1); close(con) # Read first line
+    plink_traw_format_flag <- FALSE
+    if (substr(first_line, 1, 8) == "CHR\tSNP\t") plink_traw_format_flag <- TRUE # Check for PLINK "traw" header line
+    snp_dat <- data.table::fread(file = snp_data, header = plink_traw_format_flag)
+    if (plink_traw_format_flag) snp_dat[, c("CHR","SNP", "(C)M", "POS", "COUNTED", "ALT"):=NULL] # If PLINK "traw" format, then remove non-genotype columns
     snpN.full <- nrow(snp_dat) # number of SNP
     message(paste("Imported", snpN.full, "SNP by", sampN.full, "sample genotype matrix"))
     message(paste0("Time elapsed: ", get.time(startT)))
@@ -650,6 +647,7 @@ smart_mva <- function(snp_data, packed_data = FALSE, sample_group,
 
     # Create group variable
     group <- factor(sample_group[sample_test])
+    group_df <- data.frame(group = group)
 
     # Set seed of random generator
     set.seed(permutation_seed)
@@ -690,8 +688,11 @@ smart_mva <- function(snp_data, packed_data = FALSE, sample_group,
       message(paste0("Computing variance partioning by PERMANOVA: global test..."))
 
       # Compute PERMANOVA (global test)
-      pmanova <- vegan::adonis(formula = snp_eucli ~ group, permutations = permutation_n) # run test
-      globalTable.anova <- pmanova$aov.tab[c(1:6)] # extract ANOVA table
+      pmanova <- vegan::adonis2(formula = snp_eucli ~ group,
+                                data = group_df,
+                                permutations = permutation_n,
+                                by = "terms")  # run test
+      globalTable.anova <- pmanova[c(1:5)] # extract ANOVA table
 
       message("Completed PERMANOVA: global test")
       message(paste0("Time elapsed: ", get.time(startT)))
@@ -757,10 +758,10 @@ smart_mva <- function(snp_data, packed_data = FALSE, sample_group,
               test.mat <- snp_eucli[GN, GN]
             }
             if(permanova == TRUE){
-              model.temp1 <- vegan::adonis(test.mat ~ group[GN], permutations = permutation_n)
-              F.Model.anova <- c(F.Model.anova, model.temp1$aov.tab$F.Model[1])
-              pv.anova <- c(pv.anova, model.temp1$aov.tab[[6]][1])
-              R2 <- c(R2, model.temp1$aov.tab$R2[1])
+              model.temp1 <- vegan::adonis2(test.mat ~ group[GN], data = group_df, permutations = permutation_n, by = "terms")
+              F.Model.anova <- c(F.Model.anova, model.temp1$F[1])
+              pv.anova <- c(pv.anova, model.temp1[[5]][1])
+              R2 <- c(R2, model.temp1$R2[1])
             }
             if(permdisp == TRUE){
               dispCent_pair <- vegan::betadisper(stats::as.dist(test.mat), group[GN], type = dispersion_type, bias.adjust = samplesize_bias)

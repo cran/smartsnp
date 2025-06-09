@@ -86,12 +86,9 @@
 #'
 #' @return Returns a list containing the following elements:
 #' \itemize{
-#'   \item {\code{pca.snp_loadings}} {Dataframe of principal coefficients of SNPs. One set of coefficients per PCA axis computed.}\cr
-#'   \item {\code{pca.eigenvalues}} {Dataframe of eigenvalues, variance and cumulative variance explained. One eigenvalue per PCA axis computed.}\cr
-#'   \item {\code{pca_sample_coordinates}} {Dataframe showing PCA sample summary.
-#'   Column \emph{Group} assigns samples to groups.
-#'   Column \emph{Class} specifies if samples "Removed" from PCA or "Projected" onto PCA space.
-#'   Sequence of additional columns shows principal components (coordinates) of samples in PCA space (1 column per PCA computed named PC1, PC2, ...).}
+#'   \item \code{pca.snp_loadings}: Dataframe of principal coefficients of SNPs. One set of coefficients per PCA axis computed.
+#'   \item \code{pca.eigenvalues}: Dataframe of eigenvalues, variance and cumulative variance explained. One eigenvalue per PCA axis computed.
+#'   \item \code{pca_sample_coordinates}: Dataframe showing PCA sample summary. Column \emph{Group} assigns samples to groups. Column \emph{Class} specifies if samples were "Removed" from PCA or "Projected" onto PCA space. Additional columns show principal components (coordinates) of samples in PCA space (1 column per PCA computed, named PC1, PC2, ...).
 #' }
 #'
 #' @examples
@@ -104,8 +101,8 @@
 #' #run PCA with truncated SVD (PCA 1 x PCA 2)
 #' pcaR1 <- smart_pca(snp_data = pathToGenoFile, sample_group = my_groups)
 #' pcaR1$pca.eigenvalues # extract eigenvalues
-#' pcaR1$pca.snp_loadings # extract principal coefficients (SNP loadings)
-#' pcaR1$pca.sample_coordinates # extract principal components (sample position in PCA space)
+#' head(pcaR1$pca.snp_loadings) # extract principal coefficients (SNP loadings)
+#' head(pcaR1$pca.sample_coordinates) # extract principal components (sample position in PCA space)
 #' #plot PCA
 #' plot(pcaR1$pca.sample_coordinates[,c("PC1","PC2")], cex = 2,
 #'      pch = 19, col = cols[as.factor(my_groups)], main = "genotype smartpca")
@@ -118,8 +115,8 @@
 #' #run PCA with truncated SVD (PCA 1 x PCA 2)
 #' pcaR2 <- smart_pca(snp_data = pathToGenoFile, sample_group = my_groups, sample_project = my_ancient)
 #' pcaR2$pca.eigenvalues # extract eigenvalues
-#' pcaR2$pca.snp_loadings # extract principal coefficients (SNP loading)
-#' pcaR2$pca.sample_coordinates # extract principal components (sample position in PCA space)
+#' head(pcaR2$pca.snp_loadings) # extract principal coefficients (SNP loading)
+#' head(pcaR2$pca.sample_coordinates) # extract principal components (sample position in PCA space)
 #' #assign samples to groups (A, ancient, B) and colors
 #' my_groups[my_ancient] <- "ancient"; cols = c("red", "black", "blue")
 #' #plot PCA
@@ -159,7 +156,7 @@
 utils::globalVariables(c("proj_i", "S", "i")) # assign non-binding global variables
 smart_pca <- function(snp_data, packed_data = FALSE,
                       sample_group, sample_remove = FALSE, snp_remove = FALSE,
-                      missing_value = 9, missing_impute = "remove",
+                      missing_value = 9, missing_impute = "mean",
                       scaling = "drift",
                       program_svd = "RSpectra", pc_axes = 2,
                       sample_project = FALSE, pc_project = c(1:2)) {
@@ -288,7 +285,11 @@ smart_pca <- function(snp_data, packed_data = FALSE,
       missing_value <- NA # reset missing value
     }
   } else { # generic input type (columns = samples, rows = SNPs)
-    snp_dat <- data.table::fread(file = snp_data, header = FALSE)
+    con <- file(snp_data,"r"); first_line <- readLines(con,n=1); close(con) # Read first line
+    plink_traw_format_flag <- FALSE
+    if (substr(first_line, 1, 8) == "CHR\tSNP\t") plink_traw_format_flag <- TRUE # Check for PLINK "traw" header line
+    snp_dat <- data.table::fread(file = snp_data, header = plink_traw_format_flag)
+    if (plink_traw_format_flag) snp_dat[, c("CHR","SNP", "(C)M", "POS", "COUNTED", "ALT"):=NULL] # If PLINK "traw" format, then remove non-genotype columns
     snpN.full <- nrow(snp_dat) # number of SNP
     message(paste("Imported", snpN.full, "SNP by", sampN.full, "sample genotype matrix"))
     message(paste0("Time elapsed: ", get.time(startT)))
@@ -303,7 +304,8 @@ smart_pca <- function(snp_data, packed_data = FALSE,
 
   # Print error if users enter number of sample labels (sample_group) larger or smaller than number of samples in dataset (snp_dat)
   if (length(sample_group) != ncol(snp_dat)) {
-    stop("length(sample_group) should be equal to number of samples in dataset: computation aborted")
+    n_str <- paste0("n dataset = ",ncol(snp_dat),", but length(sample_group) is ",length(sample_group),"!")
+    stop(n_str," length(sample_group) should be equal to number of samples in dataset: computation aborted")
   }
 
   # Remove original dataset from memory
@@ -324,8 +326,7 @@ smart_pca <- function(snp_data, packed_data = FALSE,
   }
 
   message(paste(snpN.full, "SNPs included in PCA", "computation"))
-  message(paste(length(snp_remove), "SNPs omitted from PCA computation"))
-
+  if (length(snp_remove) != 1 | !is.logical(snp_remove)) message(paste(length(snp_remove), "SNPs omitted from PCA computation"))
 
   # Print number of samples used in, and projected onto, PCA
   message(paste(length(sample_PCA), "samples included in PCA computation"))
@@ -371,7 +372,7 @@ smart_pca <- function(snp_data, packed_data = FALSE,
     genoMean <- genoMean[keepSNPs] # compute SNP means
     genoVar <- genoVar[keepSNPs] # compute SNP variances
     if (!isFALSE(sample_project)) {
-      snp_dat2 <- snp_dat2[keepSNPs, ] # remove invariant SNPs from ancient samples
+      snp_dat2 <- snp_dat2[keepSNPs, , drop = FALSE] # remove invariant SNPs from ancient samples
     }
   }
   rm(keepSNPs) # remove vector with indices for variant SNPs
